@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D y A ❤ — Reproduciendo</title>
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <style>
+        /* ==========================================================================
+           PÁGINA DEL REPRODUCTOR — player.html
+           
+           OBJETIVO PRINCIPAL: Esta página existe para que Rave la detecte.
+           Al abrirla, el <video> tag está visible y cargado DESDE EL INICIO,
+           exactamente igual que Tokyvideo y otras páginas compatibles con Rave.
+           
+           El usuario llega aquí desde index.html con parámetros en la URL:
+           ?titulo=Nombre&url=https://video.mp4&back=pelicula-1
+        ========================================================================== */
+        :root {
+            --fondo-oscuro:    #09070f;
+            --fondo-tarjeta:   #14111c;
+            --oro-rosado:      #d4a373;
+            --dorado-suave:    #f3e9dc;
+            --vino-borgona:    #581825;
+            --vino-brillante:  #802435;
+            --texto-principal: #e0dbec;
+            --texto-secundario:#a49cb3;
+            --fuente-elegante: 'Playfair Display', Georgia, serif;
+            --fuente-interfaz: 'Montserrat', system-ui, sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--fondo-oscuro);
+            color: var(--texto-principal);
+            font-family: var(--fuente-interfaz);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Corazones flotantes — mismo estilo que index.html */
+        .background-hearts { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; overflow:hidden; }
+        .floating-heart { position:absolute; display:block; color:var(--vino-borgona); opacity:0.15; font-size:14px; animation:floatUp 15s linear infinite; bottom:-50px; }
+        @keyframes floatUp {
+            0%   { transform:translateY(0) translateX(0) rotate(0deg); opacity:0; }
+            10%  { opacity:0.25; }
+            90%  { opacity:0.15; }
+            100% { transform:translateY(-105vh) translateX(50px) rotate(360deg); opacity:0; }
+        }
+
+        .page-container {
+            width: 100%; max-width: 1000px;
+            margin: 0 auto; padding: 20px;
+            position: relative; z-index: 2;
+        }
+
+        /* Cabecera compacta */
+        .player-page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(212,163,115,0.15);
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .btn-volver {
+            background: transparent;
+            border: 1px solid rgba(212,163,115,0.4);
+            color: var(--texto-secundario);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-volver:hover { border-color: var(--oro-rosado); color: var(--oro-rosado); }
+        .brand-mini {
+            font-family: var(--fuente-elegante);
+            color: var(--oro-rosado);
+            font-size: 1.2rem;
+            text-decoration: none;
+        }
+
+        /* Título del video */
+        .video-titulo {
+            font-family: var(--fuente-elegante);
+            font-size: 1.5rem;
+            color: var(--dorado-suave);
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(212,163,115,0.15);
+        }
+
+        /* ==========================================================================
+           EL REPRODUCTOR — visible desde que carga la página.
+           Esto es lo que Rave necesita detectar.
+        ========================================================================== */
+        .video-card {
+            background-color: var(--fondo-tarjeta);
+            border: 1px solid rgba(212,163,115,0.25);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            margin-bottom: 20px;
+        }
+        .video-wrapper {
+            position: relative; width: 100%;
+            background: #000; border-radius: 8px;
+            overflow: hidden; aspect-ratio: 16/9;
+        }
+        /* Video.js styling */
+        .video-js { width: 100% !important; height: 100% !important; }
+        .vjs-default-skin .vjs-big-play-button { background-color:rgba(88,24,37,0.85) !important; border-color:var(--oro-rosado) !important; border-radius:50% !important; width:2.5em !important; height:2.5em !important; line-height:2.5em !important; margin-left:-1.25em !important; margin-top:-1.25em !important; }
+        .vjs-default-skin .vjs-control-bar { background-color:rgba(20,17,28,0.95) !important; }
+        .vjs-default-skin .vjs-play-progress, .vjs-default-skin .vjs-volume-level { background-color:var(--oro-rosado) !important; }
+
+        /* Hint y botón Rave */
+        .rave-section {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .rave-hint {
+            font-size: 0.8rem;
+            color: #7c3aed;
+            font-style: italic;
+        }
+        .btn-abrir-rave {
+            background: linear-gradient(135deg,#1a0a2e,#2d1458);
+            border: 1px solid #7c3aed;
+            color: #c4b5fd;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-abrir-rave:hover { background:linear-gradient(135deg,#2d1458,#4c1d95); box-shadow:0 0 12px rgba(124,58,237,0.5); }
+
+        /* Selector de calidad ultra sutil — solo visible en .m3u8 */
+        .quality-selector-container {
+            display: none; align-items: center;
+            justify-content: flex-end; gap: 8px;
+            opacity: 0.45; transition: opacity 0.2s; margin-top: 8px;
+        }
+        .quality-selector-container:hover { opacity: 1; }
+        .quality-selector-container span { font-size:0.72rem; color:var(--texto-secundario); }
+        .quality-select { background:var(--fondo-oscuro); border:1px solid rgba(212,163,115,0.3); color:var(--texto-secundario); padding:2px 6px; border-radius:4px; outline:none; font-size:0.72rem; }
+
+        /* Mensaje de error si no hay URL */
+        .error-msg {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--texto-secundario);
+            font-style: italic;
+        }
+        .error-msg a {
+            color: var(--oro-rosado);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="background-hearts" id="heartsBackground"></div>
+
+<div class="page-container">
+
+    <!-- Cabecera compacta con botón volver y marca -->
+    <div class="player-page-header">
+        <div class="header-left">
+            <!-- El href del botón volver se genera dinámicamente con JS -->
+            <a class="btn-volver" id="btnVolver" href="/">← Volver</a>
+            <a class="brand-mini" href="/">D y A ❤</a>
+        </div>
+    </div>
+
+    <!-- Título del video — se llena desde los parámetros de la URL -->
+    <div class="video-titulo" id="videoTitulo">Cargando...</div>
+
+    <!-- =======================================================================
+         REPRODUCTOR VISIBLE DESDE QUE CARGA LA PÁGINA
+         Este es el elemento clave: Rave escanea la página y encuentra el
+         <video> tag con el src cargado, igual que en Tokyvideo.
+         No hay clicks necesarios — el video está listo al instante.
+    ======================================================================= -->
+    <div class="video-card" id="videoCard">
+        <div class="video-wrapper">
+            <!--
+                El atributo src del <source> se inyecta con JavaScript
+                usando los parámetros de la URL (?url=...).
+                El video queda visible y cargado desde que la página abre.
+            -->
+            <video
+                id="mainPlayer"
+                class="video-js vjs-default-skin vjs-big-play-centered"
+                controls
+                preload="auto"
+                crossorigin="anonymous"
+                playsinline
+            >
+                <p class="vjs-no-js">Habilita JavaScript para ver este video.</p>
+            </video>
+        </div>
+
+        <div class="rave-section">
+            <span class="rave-hint">💡 Abre esta URL desde Rave app — detectará el video automáticamente</span>
+            <button class="btn-abrir-rave" id="btnRave" onclick="player.abrirEnRave()">
+                🎬 Compartir en Rave
+            </button>
+        </div>
+
+        <!-- Selector de calidad: solo aparece en .m3u8 -->
+        <div class="quality-selector-container" id="qualityArea">
+            <span>calidad</span>
+            <select class="quality-select" onchange="player.changeQuality(this.value)">
+                <option value="auto">auto</option>
+                <option value="0">1080p</option>
+                <option value="1">720p</option>
+                <option value="2">480p</option>
+                <option value="3">360p</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Mensaje de error si faltan parámetros -->
+    <div class="error-msg" id="errorMsg" style="display:none;">
+        No se encontró el video. <a href="/">← Volver al catálogo</a>
+    </div>
+
+</div>
+
+<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+<script>
+/* ============================================================================
+   LÓGICA DEL REPRODUCTOR — player.html
+
+   Lee los parámetros de la URL:
+   - titulo: nombre del video a mostrar
+   - url:    enlace directo al .mp4 o .m3u8
+   - back:   URL de vuelta al catálogo (con pestaña correcta)
+
+   Ejemplo de URL que genera index.html:
+   /player.html?titulo=Big+Buck+Bunny&url=https://...mp4&back=/?tab=Película
+============================================================================ */
+window.player = {
+
+    vjsInstance: null,
+    currentUrl:  '',
+
+    init: function() {
+        this.generateHearts();
+
+        /* Leer parámetros de la URL */
+        const params = new URLSearchParams(window.location.search);
+        const titulo = params.get('titulo') || '';
+        const url    = params.get('url')    || '';
+        const back   = params.get('back')   || '/';
+
+        /* Configurar botón volver */
+        document.getElementById('btnVolver').href = back;
+
+        if (!url) {
+            /* Sin URL — mostrar error */
+            document.getElementById('videoCard').style.display = 'none';
+            document.getElementById('errorMsg').style.display  = 'block';
+            document.title = 'D y A ❤ — Sin video';
+            return;
+        }
+
+        /* Mostrar título */
+        document.getElementById('videoTitulo').innerText = decodeURIComponent(titulo);
+        document.title = decodeURIComponent(titulo) + ' — D y A ❤';
+
+        this.currentUrl = decodeURIComponent(url);
+
+        /* Mostrar selector de calidad solo en .m3u8 */
+        if (this.currentUrl.includes('.m3u8')) {
+            document.getElementById('qualityArea').style.display = 'flex';
+        }
+
+        /* Inicializar Video.js con la URL ya cargada.
+           El video queda visible y reproducible desde el primer instante —
+           esto es exactamente lo que Rave necesita detectar. */
+        setTimeout(() => {
+            this.vjsInstance = videojs('mainPlayer', {
+                fluid:      true,
+                responsive: true,
+                autoplay:   false,
+                sources: [{
+                    src:  this.currentUrl,
+                    type: this.currentUrl.includes('.m3u8')
+                          ? 'application/x-mpegURL'
+                          : 'video/mp4'
+                }]
+            });
+        }, 300);
+    },
+
+    /* Abrir URL del video en nueva pestaña para compartir con Rave */
+    abrirEnRave: function() {
+        if (!this.currentUrl) return;
+        /* Copiamos la URL actual de esta página al portapapeles.
+           El usuario la pega en Rave → web → y Rave detecta el video. */
+        const pageUrl = window.location.href;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(pageUrl)
+                .then(() => alert('✅ URL copiada.\nPégala en Rave → Web para abrir la sala privada.\n\n' + pageUrl))
+                .catch(() => alert('URL de esta página:\n' + pageUrl));
+        } else {
+            alert('URL de esta página:\n' + pageUrl);
+        }
+    },
+
+    changeQuality: function(val) {
+        console.log('Calidad HLS:', val);
+    },
+
+    generateHearts: function() {
+        const c = document.getElementById('heartsBackground');
+        if (!c) return;
+        const s = ['❤','❣','♥','♡'];
+        for (let i = 0; i < 15; i++) {
+            const el = document.createElement('span');
+            el.className   = 'floating-heart';
+            el.innerText   = s[Math.floor(Math.random() * s.length)];
+            el.style.left  = `${Math.random() * 100}%`;
+            el.style.animationDelay = `${Math.random() * 14}s`;
+            el.style.fontSize = `${Math.floor(Math.random() * 10) + 12}px`;
+            c.appendChild(el);
+        }
+    }
+};
+
+window.addEventListener('DOMContentLoaded', () => window.player.init());
+</script>
+</body>
+</html>
