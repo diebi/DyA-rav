@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/watch",     "destination": "/api/watch" },
+    { "source": "/api/proxy", "destination": "/api/proxy" }
+  ]
+}
