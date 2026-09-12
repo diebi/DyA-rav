@@ -1,5 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/watch", "destination": "/api/watch" }
-  ]
-}
